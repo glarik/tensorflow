@@ -105,6 +105,15 @@ Status RestoreSession(const RunOptions& run_options,
                       const MetaGraphDef& meta_graph, const string& export_dir,
                       std::unique_ptr<Session>* session);
 
+// Restore variable and resources in the SavedModel export dir for the
+// indicated metagraph.
+// The recommended way to load a saved model is to call LoadSavedModel,
+// which provides an already initialized Metagraph, Session, and DebugInfo.
+// modified to not need export_dir
+Status RestoreSession(const RunOptions& run_options,
+                      const MetaGraphDef& meta_graph,
+                      std::unique_ptr<Session>* session);
+
 // Initialize a session which wraps this metagraph.
 // The recommended way to load a saved model is to call LoadSavedModel,
 // which provides an already initialized Metagraph, Session, and DebugInfo.
@@ -123,6 +132,13 @@ Status LoadSavedModel(const SessionOptions& session_options,
                       const std::unordered_set<string>& tags,
                       SavedModelBundle* const bundle);
 
+// load from buffer instead of file
+Status LoadSavedModel(const SessionOptions& session_options,
+                      const RunOptions& run_options,
+                      const std::vector<unsigned char>& model_vector,
+                      const std::unordered_set<string>& tags,
+                      SavedModelBundle* const bundle);
+
 /// Loads a SavedModel from the specified export directory. The MetaGraphDef
 /// to be loaded is identified by the supplied tags, corresponding exactly to
 /// the set of tags used at SavedModel build time. Stores a SavedModel bundle
@@ -132,6 +148,13 @@ Status LoadSavedModel(const SessionOptions& session_options,
 /// an equivalent SavedModelBundle.
 Status LoadSavedModel(const SessionOptions& session_options,
                       const RunOptions& run_options, const string& export_dir,
+                      const std::unordered_set<string>& tags,
+                      SavedModelBundleLite* const bundle);
+
+// load from buffer instead of file
+Status LoadSavedModel(const SessionOptions& session_options,
+                      const RunOptions& run_options,
+                      const std::vector<unsigned char>& model_vector,
                       const std::unordered_set<string>& tags,
                       SavedModelBundleLite* const bundle);
 

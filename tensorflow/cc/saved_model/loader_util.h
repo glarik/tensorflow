@@ -30,6 +30,9 @@ namespace internal {
 Status GetInitOp(const string& export_dir, const MetaGraphDef& meta_graph_def,
                  string* init_op_name);
 
+Status GetInitOp(const MetaGraphDef& meta_graph_def,
+                 string* init_op_name);
+
 Status GetAssetFileDefs(const MetaGraphDef& meta_graph_def,
                         std::vector<AssetFileDef>* asset_file_defs);
 

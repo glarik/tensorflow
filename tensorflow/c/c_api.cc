@@ -2292,6 +2292,73 @@ TF_Session* TF_LoadSessionFromSavedModel(
 #endif  // defined(IS_MOBILE_PLATFORM) || defined(IS_SLIM_BUILD)
 }
 
+TF_Session* TF_LoadSessionFromSavedModelBuffer(
+    const TF_SessionOptions* session_options, const TF_Buffer* run_options,
+    TF_Buffer* model_buffer, const char* const* tags, int tags_len,
+    TF_Graph* graph, TF_Buffer* meta_graph_def, TF_Status* status) {
+// TODO(sjr): Remove the IS_MOBILE_PLATFORM guard. This will require ensuring
+// that the tensorflow/cc/saved_model:loader build target is mobile friendly.
+#if defined(IS_MOBILE_PLATFORM) || defined(IS_SLIM_BUILD)
+  status->status = tensorflow::errors::Unimplemented(
+      "Loading a SavedModel is not supported on mobile. File a bug at "
+      "https://github.com/tensorflow/tensorflow/issues if this feature is "
+      "important to you");
+  return nullptr;
+#else
+  mutex_lock l(graph->mu);
+  if (!graph->name_map.empty()) {
+    status->status = InvalidArgument("Graph is non-empty.");
+    return nullptr;
+  }
+
+  RunOptions run_options_proto;
+  if (run_options != nullptr && !run_options_proto.ParseFromArray(
+                                    run_options->data, run_options->length)) {
+    status->status = InvalidArgument("Unparseable RunOptions proto");
+    return nullptr;
+  }
+
+  std::unordered_set<string> tag_set;
+  for (int i = 0; i < tags_len; i++) {
+    tag_set.insert(string(tags[i]));
+  }
+
+  std::vector<unsigned char> model_vector;
+  model_vector.resize(model_buffer->length);
+  model_vector.data() = (unsigned char*)model_buffer->data;
+
+  tensorflow::SavedModelBundleLite bundle;
+  status->status =
+      tensorflow::LoadSavedModel(session_options->options, run_options_proto,
+                                 model_buffer, tag_set, &bundle);
+  if (!status->status.ok()) return nullptr;
+
+  // Create a TF_Graph from the MetaGraphDef. This is safe as long as Session
+  // extends using GraphDefs. The Graph instance is different, but equivalent
+  // to the one used to create the session.
+  //
+  // TODO(jhseu): When Session is modified to take Graphs instead of
+  // GraphDefs, return the Graph generated in LoadSavedModel().
+  TF_ImportGraphDefOptions* import_opts = TF_NewImportGraphDefOptions();
+  TF_ImportGraphDefResults results;
+  GraphImportGraphDefLocked(graph, bundle.meta_graph_def.graph_def(),
+                            import_opts, &results, status);
+  TF_DeleteImportGraphDefOptions(import_opts);
+  if (!status->status.ok()) return nullptr;
+
+  if (meta_graph_def != nullptr) {
+    status->status = MessageToBuffer(bundle.meta_graph_def, meta_graph_def);
+    if (!status->status.ok()) return nullptr;
+  }
+
+  TF_Session* session = new TF_Session(bundle.session.release(), graph);
+
+  graph->sessions[session] = "";
+  session->last_num_graph_nodes = graph->graph.num_node_ids();
+  return session;
+#endif  // defined(IS_MOBILE_PLATFORM) || defined(IS_SLIM_BUILD)
+}
+
 void TF_CloseSession(TF_Session* s, TF_Status* status) {
   status->status = s->session->Close();
 }

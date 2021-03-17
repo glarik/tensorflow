@@ -140,6 +140,17 @@ Status ReadMetaGraphDefFromSavedModel(const string& export_dir,
   return OkStatus();
 }
 
+Status ReadMetaGraphDefFromSavedModel(const std::vector<unsigned char>& model_vector,
+                                      const std::unordered_set<string>& tags,
+                                      MetaGraphDef* const meta_graph_def) {
+  SavedModel saved_model_proto;
+  TF_RETURN_IF_ERROR(
+      ReadBinaryProto(Env::Default(), model_vector, saved_model_proto));
+  TF_RETURN_IF_ERROR(
+      FindMetaGraphDef(tags, &saved_model_proto, meta_graph_def));
+  return Status::OK();
+}
+
 Status ReadSavedModelDebugInfoIfPresent(
     const string& export_dir,
     std::unique_ptr<GraphDebugInfo>* debug_info_proto) {

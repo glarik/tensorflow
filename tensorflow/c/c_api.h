@@ -1224,6 +1224,12 @@ TF_CAPI_EXPORT extern TF_Session* TF_LoadSessionFromSavedModel(
     const char* export_dir, const char* const* tags, int tags_len,
     TF_Graph* graph, TF_Buffer* meta_graph_def, TF_Status* status);
 
+// load session from void* pointer to binary saved model
+TF_CAPI_EXPORT extern TF_Session* TF_LoadSessionFromSavedModelBuffer(
+    const TF_SessionOptions* session_options, const TF_Buffer* run_options,
+    TF_Buffer* model_buffer, const char* const* tags, int tags_len,
+    TF_Graph* graph, TF_Buffer* meta_graph_def, TF_Status* status);
+
 // Close a session.
 //
 // Contacts any other processes associated with the session, if applicable.

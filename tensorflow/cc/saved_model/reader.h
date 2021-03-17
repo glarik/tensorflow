@@ -39,6 +39,11 @@ Status ReadMetaGraphDefFromSavedModel(const string& export_dir,
                                       const std::unordered_set<string>& tags,
                                       MetaGraphDef* meta_graph_def);
 
+// read from saved model buffer instead
+Status ReadMetaGraphDefFromSavedModel(const std::vector<unsigned char>& model_vector,
+                                      const std::unordered_set<string>& tags,
+                                      MetaGraphDef* const meta_graph_def);
+
 // Store debug info from the SavedModel export dir.
 Status ReadSavedModelDebugInfoIfPresent(
     const string& export_dir,
