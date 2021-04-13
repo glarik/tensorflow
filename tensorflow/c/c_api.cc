@@ -79,7 +79,6 @@ using tensorflow::DataType;
 using tensorflow::ExtendSessionGraphHelper;
 using tensorflow::Graph;
 using tensorflow::GraphDef;
-using tensorflow::mutex_lock;
 using tensorflow::NameRangeMap;
 using tensorflow::NameRangesForNode;
 using tensorflow::NewSession;
@@ -94,7 +93,6 @@ using tensorflow::RunMetadata;
 using tensorflow::RunOptions;
 using tensorflow::Session;
 using tensorflow::Status;
-using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::TensorBuffer;
 using tensorflow::TensorId;
@@ -104,6 +102,8 @@ using tensorflow::VersionDef;
 using tensorflow::errors::FailedPrecondition;
 using tensorflow::errors::InvalidArgument;
 using tensorflow::gtl::ArraySlice;
+using tensorflow::mutex_lock;
+using tensorflow::string;
 using tensorflow::strings::StrCat;
 
 extern "C" {
@@ -410,9 +410,9 @@ static TF_Tensor* EmptyTensor(TF_DataType dtype,
   CHECK_EQ(nelems, 0);
   static_assert(sizeof(int64_t) == sizeof(tensorflow::int64),
                 "64-bit int types should match in size");
-  return TF_NewTensor(
-      dtype, reinterpret_cast<const int64_t*>(dims.data()), shape.dims(),
-      reinterpret_cast<void*>(&empty), 0, [](void*, size_t, void*) {}, nullptr);
+  return TF_NewTensor(dtype, reinterpret_cast<const int64_t*>(dims.data()),
+                      shape.dims(), reinterpret_cast<void*>(&empty), 0,
+                      [](void*, size_t, void*) {}, nullptr);
 }
 
 static void TF_Run_Helper(
@@ -1274,20 +1274,18 @@ TF_AttrMetadata TF_OperationGetAttrMetadata(TF_Operation* oper,
     break;                                            \
   }
 
-      LIST_CASE(
-          s, TF_ATTR_STRING, metadata.total_size = 0;
-          for (int i = 0; i < attr->list().s_size();
-               ++i) { metadata.total_size += attr->list().s(i).size(); });
+      LIST_CASE(s, TF_ATTR_STRING, metadata.total_size = 0;
+                for (int i = 0; i < attr->list().s_size();
+                     ++i) { metadata.total_size += attr->list().s(i).size(); });
       LIST_CASE(i, TF_ATTR_INT);
       LIST_CASE(f, TF_ATTR_FLOAT);
       LIST_CASE(b, TF_ATTR_BOOL);
       LIST_CASE(type, TF_ATTR_TYPE);
-      LIST_CASE(
-          shape, TF_ATTR_SHAPE, metadata.total_size = 0;
-          for (int i = 0; i < attr->list().shape_size(); ++i) {
-            const auto& s = attr->list().shape(i);
-            metadata.total_size += s.unknown_rank() ? 0 : s.dim_size();
-          });
+      LIST_CASE(shape, TF_ATTR_SHAPE, metadata.total_size = 0;
+                for (int i = 0; i < attr->list().shape_size(); ++i) {
+                  const auto& s = attr->list().shape(i);
+                  metadata.total_size += s.unknown_rank() ? 0 : s.dim_size();
+                });
       LIST_CASE(tensor, TF_ATTR_TENSOR);
       LIST_CASE(tensor, TF_ATTR_FUNC);
 #undef LIST_CASE
@@ -2290,14 +2288,13 @@ TF_Session* TF_LoadSessionFromSavedModelBuffer(
     tag_set.insert(string(tags[i]));
   }
 
-  std::vector<unsigned char> model_vector;
-  model_vector.resize(model_buffer->length);
-  model_vector.data() = (unsigned char*)model_buffer->data;
+  std::pair<const void*, size_t> binaryModel(model_buffer->data,
+                                             model_buffer->length);
 
-  tensorflow::SavedModelBundleLite bundle;
+  tensorflow::SavedModelBundle bundle;
   status->status =
       tensorflow::LoadSavedModel(session_options->options, run_options_proto,
-                                 model_buffer, tag_set, &bundle);
+                                 binaryModel, tag_set, &bundle);
   if (!status->status.ok()) return nullptr;
 
   // Create a TF_Graph from the MetaGraphDef. This is safe as long as Session
@@ -2607,7 +2604,7 @@ void TF_UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst,
   }
 }
 
-// TF_Server functions ----------------------------------------------
+  // TF_Server functions ----------------------------------------------
 
 #if !defined(IS_MOBILE_PLATFORM) && !defined(IS_SLIM_BUILD)
 TF_Server::TF_Server(std::unique_ptr<tensorflow::ServerInterface> server)
