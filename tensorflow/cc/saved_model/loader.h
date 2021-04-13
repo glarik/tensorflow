@@ -135,7 +135,7 @@ Status LoadSavedModel(const SessionOptions& session_options,
 // load from buffer instead of file
 Status LoadSavedModel(const SessionOptions& session_options,
                       const RunOptions& run_options,
-                      const std::vector<unsigned char>& model_vector,
+                      const std::pair<const void*, size_t>& binary_model,
                       const std::unordered_set<string>& tags,
                       SavedModelBundle* const bundle);
 
@@ -148,13 +148,6 @@ Status LoadSavedModel(const SessionOptions& session_options,
 /// an equivalent SavedModelBundle.
 Status LoadSavedModel(const SessionOptions& session_options,
                       const RunOptions& run_options, const string& export_dir,
-                      const std::unordered_set<string>& tags,
-                      SavedModelBundleLite* const bundle);
-
-// load from buffer instead of file
-Status LoadSavedModel(const SessionOptions& session_options,
-                      const RunOptions& run_options,
-                      const std::vector<unsigned char>& model_vector,
                       const std::unordered_set<string>& tags,
                       SavedModelBundleLite* const bundle);
 

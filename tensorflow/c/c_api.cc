@@ -91,7 +91,6 @@ using tensorflow::ExtendSessionGraphHelper;
 using tensorflow::FullTypeDef;
 using tensorflow::Graph;
 using tensorflow::GraphDef;
-using tensorflow::mutex_lock;
 using tensorflow::NameRangeMap;
 using tensorflow::NameRangesForNode;
 using tensorflow::NewSession;
@@ -103,7 +102,6 @@ using tensorflow::RunMetadata;
 using tensorflow::RunOptions;
 using tensorflow::Session;
 using tensorflow::Status;
-using tensorflow::string;
 using tensorflow::Tensor;
 using tensorflow::TensorId;
 using tensorflow::TensorShapeProto;
@@ -112,6 +110,8 @@ using tensorflow::errors::FailedPrecondition;
 using tensorflow::errors::InvalidArgument;
 using tensorflow::errors::OutOfRange;
 using tensorflow::gtl::ArraySlice;
+using tensorflow::mutex_lock;
+using tensorflow::string;
 using tensorflow::strings::StrCat;
 
 extern "C" {
@@ -1273,20 +1273,18 @@ TF_AttrMetadata TF_OperationGetAttrMetadata(TF_Operation* oper,
     break;                                            \
   }
 
-      LIST_CASE(
-          s, TF_ATTR_STRING, metadata.total_size = 0;
-          for (int i = 0; i < attr->list().s_size();
-               ++i) { metadata.total_size += attr->list().s(i).size(); });
+      LIST_CASE(s, TF_ATTR_STRING, metadata.total_size = 0;
+                for (int i = 0; i < attr->list().s_size();
+                     ++i) { metadata.total_size += attr->list().s(i).size(); });
       LIST_CASE(i, TF_ATTR_INT);
       LIST_CASE(f, TF_ATTR_FLOAT);
       LIST_CASE(b, TF_ATTR_BOOL);
       LIST_CASE(type, TF_ATTR_TYPE);
-      LIST_CASE(
-          shape, TF_ATTR_SHAPE, metadata.total_size = 0;
-          for (int i = 0; i < attr->list().shape_size(); ++i) {
-            const auto& s = attr->list().shape(i);
-            metadata.total_size += s.unknown_rank() ? 0 : s.dim_size();
-          });
+      LIST_CASE(shape, TF_ATTR_SHAPE, metadata.total_size = 0;
+                for (int i = 0; i < attr->list().shape_size(); ++i) {
+                  const auto& s = attr->list().shape(i);
+                  metadata.total_size += s.unknown_rank() ? 0 : s.dim_size();
+                });
       LIST_CASE(tensor, TF_ATTR_TENSOR);
       LIST_CASE(tensor, TF_ATTR_FUNC);
 #undef LIST_CASE
@@ -2323,14 +2321,13 @@ TF_Session* TF_LoadSessionFromSavedModelBuffer(
     tag_set.insert(string(tags[i]));
   }
 
-  std::vector<unsigned char> model_vector;
-  model_vector.resize(model_buffer->length);
-  model_vector.data() = (unsigned char*)model_buffer->data;
+  std::pair<const void*, size_t> binaryModel(model_buffer->data,
+                                             model_buffer->length);
 
-  tensorflow::SavedModelBundleLite bundle;
+  tensorflow::SavedModelBundle bundle;
   status->status =
       tensorflow::LoadSavedModel(session_options->options, run_options_proto,
-                                 model_buffer, tag_set, &bundle);
+                                 binaryModel, tag_set, &bundle);
   if (!status->status.ok()) return nullptr;
 
   // Create a TF_Graph from the MetaGraphDef. This is safe as long as Session

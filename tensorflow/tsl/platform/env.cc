@@ -599,14 +599,10 @@ Status ReadBinaryProto(Env* env, const string& fname,
 }
 
 Status ReadBinaryProto(Env* env,
-                       const std::vector<unsigned char>& binaryVector,
+                       const std::pair<const void*, size_t>& binary_model,
                        protobuf::MessageLite* proto) {
-  protobuf::io::CodedInputStream coded_stream(binaryVector.data(), binaryVector.size());
-
-  if (!proto->ParseFromCodedStream(&coded_stream) ||
-      !coded_stream.ConsumedEntireMessage()) {
-    TF_RETURN_IF_ERROR(stream->status());
-    return errors::DataLoss("Can't parse ", fname, " as binary proto");
+  if (!proto->ParseFromArray(binary_model.first, binary_model.second)) {
+    return errors::DataLoss("Can't parse model as binary proto");
   }
   return Status::OK();
 }

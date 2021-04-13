@@ -624,7 +624,7 @@ Status ReadBinaryProto(Env* env, const std::string& fname,
 
 // for reading from buffer instead of file
 Status ReadBinaryProto(Env* env,
-                       const std::vector<unsigned char>& binaryVector,
+                       const std::pair<const void*, size_t>& binary_model,
                        protobuf::MessageLite* proto);
 
 /// Write the text representation of "proto" to the named file.
