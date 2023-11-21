@@ -242,6 +242,23 @@ Status RunInitOp(const RunOptions& run_options,
   return Status::OK();
 }
 
+// RunInitOp will return OK if the initialization op was run successfully.
+// An empty init_op_name indicates that there are no init ops to run.
+Status RunInitOp(const RunOptions& run_options,
+                 const MetaGraphDef& meta_graph_def,
+                 const std::vector<AssetFileDef>& asset_file_defs,
+                 Session* session, const string& init_op_name) {
+  if (!init_op_name.empty()) {
+    LOG(INFO) << "Running initialization op on SavedModel bundle.";
+    std::vector<std::pair<string, Tensor>> inputs;
+    // AddAssetsTensorsToInputs(export_dir, asset_file_defs, &inputs);
+    RunMetadata run_metadata;
+    return RunOnce(run_options, inputs, {}, {init_op_name},
+                   nullptr /* outputs */, &run_metadata, session);
+  }
+  return Status::OK();
+}
+
 Status RunRestore(const RunOptions& run_options, const string& export_dir,
                   const StringPiece restore_op_name,
                   const StringPiece variable_filename_const_op_name,
@@ -310,6 +327,41 @@ Status LoadSavedModelInternal(const SessionOptions& session_options,
   TF_RETURN_IF_ERROR(RestoreSession(run_options, bundle->meta_graph_def,
                                     export_dir, &bundle->session));
   return OkStatus();
+}
+
+Status LoadSavedModelInternal(
+    const SessionOptions& session_options, const RunOptions& run_options,
+    const std::pair<const void*, size_t>& binary_model,
+    const std::unordered_set<string>& tags, SavedModelBundle* const bundle) {
+  TF_RETURN_IF_ERROR(ReadMetaGraphDefFromSavedModel(binary_model, tags,
+                                                    &bundle->meta_graph_def));
+  // I decided that we don't care about the debug info --glarik
+  // TF_RETURN_IF_ERROR(
+  //    ReadSavedModelDebugInfoIfPresent(binary_model, &bundle->debug_info));
+  TF_RETURN_IF_ERROR(LoadMetagraphIntoSession(
+      session_options, bundle->meta_graph_def, &bundle->session));
+  // RestoreSession calls RunRestore then GetInitOp then RunInitOp then GetCell
+  // - RunRestore: loads the variables (or maybe just saves the file paths into
+  // string tensors)
+  //    - constructs the paths to the variable files and stores them in tensors
+  //    - then calls RunOnce with the variable tensors, no outputs, and
+  //    restore_op_name from the meta_graph
+  //        - iterates thru the inputs (pairs of string/Tensor) - variables
+  //            - does add_feed (???)
+  //            - then pushes the tensor onto the feed_tensors vector
+  // - then runs GetInitOp which only uses export_dir for error message
+  // (modified)
+  // - then RunInitOp: might be optional
+  //    - then calls AddAssetsTensorsToInputs - i think this is mostly optional
+  //    as well
+  //                                            except for some special models
+  //            - this calls CreateStringTensor in a loop with the asset
+  //            filename for all assets ( i dont think this actually loads the
+  //            the files )
+  //    - and finally RunOnce which doesn't seem to use export_dir
+  TF_RETURN_IF_ERROR(
+      RestoreSession(run_options, bundle->meta_graph_def, &bundle->session));
+  return Status::OK();
 }
 
 Status LoadSavedModelInternal(
@@ -546,6 +598,36 @@ Status RestoreSession(const RunOptions& run_options,
   load_latency_by_stage->GetCell(export_dir, "init_graph")
       ->Add(GetLatencyMicroseconds(graph_init_start_microseconds));
   return OkStatus();
+}
+
+Status RestoreSession(const RunOptions& run_options,
+                      const MetaGraphDef& meta_graph,
+                      std::unique_ptr<Session>* session) {
+  // const uint64 read_start_microseconds = Env::Default()->NowMicros();
+  std::vector<AssetFileDef> asset_file_defs;
+  TF_RETURN_IF_ERROR(internal::GetAssetFileDefs(meta_graph, &asset_file_defs));
+  // if (meta_graph.has_saver_def()) {
+  //  TF_RETURN_IF_ERROR(RunRestore(run_options, export_dir,
+  //                                meta_graph.saver_def().restore_op_name(),
+  //                                meta_graph.saver_def().filename_tensor_name(),
+  //                                asset_file_defs, session->get()));
+  //}
+  // Record walltime spent in restoring graph from disk, but postpone metric
+  // increments until graph init finishes.
+  // const uint64 restore_graph_walltime =
+  //    GetLatencyMicroseconds(read_start_microseconds);
+
+  // const uint64 graph_init_start_microseconds = Env::Default()->NowMicros();
+  string init_op_name;
+  TF_RETURN_IF_ERROR(internal::GetInitOp(meta_graph, &init_op_name));
+  TF_RETURN_IF_ERROR(RunInitOp(run_options, meta_graph, asset_file_defs,
+                               session->get(), init_op_name));
+  // load_latency_by_stage->GetCell(export_dir, "restore_graph")
+  //    ->Add(restore_graph_walltime);
+  //// Record wall time spent in init op.
+  // load_latency_by_stage->GetCell(export_dir, "init_graph")
+  //    ->Add(GetLatencyMicroseconds(graph_init_start_microseconds));
+  return Status::OK();
 }
 
 Status RestoreSession(const RunOptions& run_options,
