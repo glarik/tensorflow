@@ -607,15 +607,6 @@ Status ReadBinaryProto(Env* env,
   return Status::OK();
 }
 
-Status ReadBinaryProto(Env* env,
-                       const std::pair<const void*, size_t>& binary_model,
-                       protobuf::MessageLite* proto) {
-  if (!proto->ParseFromArray(binary_model.first, binary_model.second)) {
-    return errors::DataLoss("Can't parse model as binary proto");
-  }
-  return Status::OK();
-}
-
 Status WriteTextProto(Env* env, const string& fname,
                       const protobuf::Message& proto) {
   string serialized;

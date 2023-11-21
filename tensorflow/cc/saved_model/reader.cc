@@ -153,19 +153,6 @@ Status ReadMetaGraphDefFromSavedModel(
   return Status::OK();
 }
 
-// func to support reading from void *
-Status ReadMetaGraphDefFromSavedModel(
-    const std::pair<const void*, size_t>& binary_model,
-    const std::unordered_set<string>& tags,
-    MetaGraphDef* const meta_graph_def) {
-  SavedModel saved_model_proto;
-  TF_RETURN_IF_ERROR(
-      ReadBinaryProto(Env::Default(), binary_model, &saved_model_proto));
-  TF_RETURN_IF_ERROR(
-      FindMetaGraphDef(tags, &saved_model_proto, meta_graph_def));
-  return Status::OK();
-}
-
 Status ReadSavedModelDebugInfoIfPresent(
     const string& export_dir,
     std::unique_ptr<GraphDebugInfo>* debug_info_proto) {
