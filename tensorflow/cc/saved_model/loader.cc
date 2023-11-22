@@ -239,7 +239,7 @@ Status RunInitOp(const RunOptions& run_options,
     return RunOnce(run_options, inputs, {}, {init_op_name},
                    nullptr /* outputs */, &run_metadata, session);
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status RunRestore(const RunOptions& run_options, const string& export_dir,
@@ -344,7 +344,7 @@ Status LoadSavedModelInternal(
   //    - and finally RunOnce which doesn't seem to use export_dir
   TF_RETURN_IF_ERROR(
       RestoreSession(run_options, bundle->meta_graph_def, &bundle->session));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoadSavedModel(const SessionOptions& session_options,
@@ -575,7 +575,7 @@ Status RestoreSession(const RunOptions& run_options,
   //// Record wall time spent in init op.
   // load_latency_by_stage->GetCell(export_dir, "init_graph")
   //    ->Add(GetLatencyMicroseconds(graph_init_start_microseconds));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status LoadSavedModel(const SessionOptions& session_options,

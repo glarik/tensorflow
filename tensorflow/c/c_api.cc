@@ -2638,7 +2638,6 @@ void TF_UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst,
   }
 }
 
-<<<<<<< HEAD
 // Apis that are corresponding to python c api. --------------------------
 
 void TF_AddOperationControlInput(TF_Graph* graph, TF_Operation* op,
@@ -2784,9 +2783,6 @@ void TF_AddWhileInputHack(TF_Graph* graph, TF_Output new_src, TF_Operation* dst,
 // -------------------------------------------------------------------
 
 // TF_Server functions ----------------------------------------------
-=======
-  // TF_Server functions ----------------------------------------------
->>>>>>> 0022bdd0838cc3783c60804ba0bdeebf3d51df21
 
 #if !defined(IS_MOBILE_PLATFORM) && !defined(IS_SLIM_BUILD)
 TF_Server::TF_Server(std::unique_ptr<tensorflow::ServerInterface> server)

@@ -604,7 +604,7 @@ Status ReadBinaryProto(Env* env,
   if (!proto->ParseFromArray(binary_model.first, binary_model.second)) {
     return errors::DataLoss("Can't parse model as binary proto");
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status WriteTextProto(Env* env, const string& fname,

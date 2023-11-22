@@ -150,7 +150,7 @@ Status ReadMetaGraphDefFromSavedModel(
       ReadBinaryProto(Env::Default(), binary_model, &saved_model_proto));
   TF_RETURN_IF_ERROR(
       FindMetaGraphDef(tags, &saved_model_proto, meta_graph_def));
-  return Status::OK();
+  return OkStatus();
 }
 
 Status ReadSavedModelDebugInfoIfPresent(

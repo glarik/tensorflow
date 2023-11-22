@@ -77,7 +77,7 @@ Status GetInitOp(const MetaGraphDef& meta_graph_def,
     *init_op_name = init_op_sig_it->second.outputs()
                         .find(kSavedModelInitOpSignatureKey)
                         ->second.name();
-    return Status::OK();
+    return OkStatus();
   }
 
   const auto& collection_def_map = meta_graph_def.collection_def();
@@ -97,7 +97,7 @@ Status GetInitOp(const MetaGraphDef& meta_graph_def,
     }
     *init_op_name = init_op_it->second.node_list().value(0);
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 Status GetAssetFileDefs(const MetaGraphDef& meta_graph_def,
